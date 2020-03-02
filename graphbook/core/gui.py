@@ -1,9 +1,15 @@
-from util.logs import get_logger
+from graphbook.util.logs import get_logger
+from graphbook.core.json_object import JsonObject, FloatField
 
 logger = get_logger('gui log')
 
 
-class Box(object):
+class Box(JsonObject):
+    x = FloatField(default=0)
+    y = FloatField(default=0)
+    width = FloatField(default=100)
+    height = FloatField(default=100)
+    
     def __init__(self):
         self.x = 0
         self.y = 0
