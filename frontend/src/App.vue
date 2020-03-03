@@ -40,8 +40,6 @@ export default {
   },
   mounted: function(){
     console.log("__init__");
-    console.log(this);
-    console.log(Vue);
     this.get_boxes()
   }
 }

@@ -24,6 +24,7 @@ class BoxApi(Resource):
         self.parser.add_argument('width', type=float)
         self.parser.add_argument('height', type=float)
         self.parser.add_argument('name', type=str)
+        self.parser.add_argument('id', type=str)
 
     def get(self, box_id):
         return Boxes[box_id].get_json()
@@ -66,4 +67,4 @@ api.add_resource(BoxListApi, '/box_list')
 
 @app.route('/')
 def _redirect():
-    return redirect('/dict/index.html')
+    return redirect('/index.html')

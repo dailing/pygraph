@@ -1,10 +1,9 @@
 <template>
   <svg v-bind:width="width" v-bind:height="height">
     <Box 
-      v-for="(b, index) in boxes"
+      v-for="(b) in boxes"
       :state="b"
-      :id="index"
-      :key="index"
+      :key="b.uuid"
       @select="box_selection"
     />
   </svg>

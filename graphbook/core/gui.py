@@ -1,5 +1,8 @@
 from graphbook.util.logs import get_logger
-from graphbook.core.json_object import JsonObject, FloatField, StringField
+from graphbook.core.json_object import (
+    JsonObject, FloatField, StringField,
+    UUIDField
+)
 
 logger = get_logger('gui log')
 
@@ -10,4 +13,4 @@ class Box(JsonObject):
     width = FloatField(default=200)
     height = FloatField(default=100)
     name = StringField(default='')
-    
+    uuid = UUIDField()

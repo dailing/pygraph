@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+import uuid
 
 
 class JsonObject():
@@ -8,7 +9,10 @@ class JsonObject():
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, Field):
                 v.name = k
-                storage[k]=v.default
+                if callable(v.default):
+                    storage[k] = v.default()
+                else:
+                    storage[k]=v.default
         self.__storage__ = storage
 
     def get_json(self):
@@ -70,6 +74,14 @@ class FloatField(Field):
 class StringField(Field):
     def __init__(self, default=''):
         super().__init__(default=default, dtype=str)
+
+class UUIDField(Field):
+    @staticmethod
+    def get_uuid():
+        return str(uuid.uuid4())
+
+    def __init__(self):
+        super().__init__(default=UUIDField.get_uuid, dtype=str)
 
 
 class _ListFieldStorage(JsonObject):

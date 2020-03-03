@@ -1,4 +1,6 @@
-from core.json_object import JsonObject, IntField, ListField
+from core.json_object import (
+    JsonObject, IntField, ListField,
+    UUIDField)
 
 
 class IntObject(JsonObject):
@@ -31,6 +33,15 @@ def test_list_field():
     l2.from_json(l1.get_json())
     assert len(l2.list1) == 1
     assert l2.list1[0] == 10
+
+
+class UUIDObject(JsonObject):
+    uuid = UUIDField
+
+def test_uuid():
+    uuidobj = UUIDObject()
+    assert isinstance(uuidobj.uuid, str)
+    assert len(uuidobj.uuid) > 0
 
 
 if __name__ == "__main__":
