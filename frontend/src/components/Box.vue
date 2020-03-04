@@ -40,7 +40,6 @@ export default {
     },
     mouse_move: function(event){
       if (this.status_mousedown){
-        console.log(event);
         var dx = event.x - this.startx;
         var dy = event.y - this.starty;
         if(Math.abs(dx) > 10 || Math.abs(dy) > 10 || this.status_drag){

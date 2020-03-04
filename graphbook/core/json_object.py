@@ -4,7 +4,9 @@ import uuid
 
 
 class JsonObject():
-    def __init__(self):
+    # TODO: add __get__, __set__ function, to make it suitable 
+    # to be used as a single field
+    def __init__(self, **kwargs):
         storage = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, Field):
@@ -14,6 +16,8 @@ class JsonObject():
                 else:
                     storage[k]=v.default
         self.__storage__ = storage
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
 
     def get_json(self):
         json_dict = {}
@@ -33,18 +37,23 @@ class JsonObject():
 
 
 class Field(ABC):
-    def __init__(self, default=None, dtype=None):
+    def __init__(self, default=None, dtype=None, verify=None):
         self.name = None
         self.default = default
         self.dtype = dtype
+        if not hasattr(self, '_verify'):
+            self._verify = verify
 
     def __set__(self, instance, value):
         '''
         Make sure that write a json serializable value to 
         __storage__
         '''
-        # print('__set__', instance)
-        instance.__storage__[self.name] = self._from(value)
+        value = self._from(value)
+        # print('set')
+        if self._verify is not None and not self._verify(value):
+            raise Exception('input data not correct!')
+        instance.__storage__[self.name] = value
     
     def __get__(self, instance, cls=None):
         return self._to(instance.__storage__[self.name])
@@ -74,6 +83,19 @@ class FloatField(Field):
 class StringField(Field):
     def __init__(self, default=''):
         super().__init__(default=default, dtype=str)
+
+
+class StringOptionField(Field):
+    def __init__(self, default=None, value_list=[]):
+        assert len(value_list) > 0
+        if default is None:
+            default = value_list[0]
+        super().__init__(default=default, dtype=str)
+        self.value_list = value_list
+    
+    def _verify(self, data):
+        return data in self.value_list
+
 
 class UUIDField(Field):
     @staticmethod
@@ -116,7 +138,7 @@ class _ListFieldStorage(JsonObject):
 class ListField(Field):
     class _default_value():
         def __get__(self, instance, cls=None):
-            print('default__get__')
+            # print('default__get__')
             return _ListFieldStorage(instance.dtype)
     
     default=_default_value()
@@ -128,7 +150,9 @@ class ListField(Field):
         del self.__dict__['default']
 
     def _from(self, obj):
-        return obj
+        storage = _ListFieldStorage(self.dtype)
+        storage.from_json(obj)
+        return storage
 
     def _to(self, obj):
         return obj
