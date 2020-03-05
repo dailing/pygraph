@@ -20,7 +20,7 @@ Boxes.append(Box(
 ))
 Boxes.append(Box(
     name='b',
-    x = 200, y = 200,
+    x = 300, y = 200,
     output_type='list',
     num_input_args=2,
     kwargs = ['input1', 'input2'],
@@ -40,6 +40,14 @@ Wires.append(Wire(
     input_to_node_uuid=Boxes[1].uuid,
     input_to_node_input_type='args',
     input_to_node_input_index=0
+))
+Wires.append(Wire(
+    output_from_node_uuid=Boxes[1].uuid,
+    output_from_node_output_type=Boxes[1].output_type,
+    output_from_node_output_index=2,
+    input_to_node_uuid=Boxes[2].uuid,
+    input_to_node_input_type='kwargs',
+    input_to_node_input_key='input1'
 ))
 class BoxApi(Resource):
     def __init__(self):

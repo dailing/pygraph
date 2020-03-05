@@ -64,7 +64,7 @@ export default {
   },
   methods: {
     mouse_down: function (event) {
-      console.log(event)
+      // console.log(event)
       this.startx = event.x;
       this.starty = event.y;
       this.ox = this.state.x;
@@ -86,10 +86,10 @@ export default {
     mouse_up: function(event){
       this.mouse_move(event);
       if(!this.status_drag && this.status_mousedown){
-        console.log('click');
+        // console.log('click');
         this.$emit('select_box', this.state.uuid);
       } else if(this.status_drag && this.status_mousedown){
-        console.log('drag');
+        // console.log('drag');
         this.$emit('move_box', this.state.uuid);
       }
       this.status_drag = false;
@@ -129,7 +129,7 @@ export default {
           width:this.port_width,
           height:this.port_height,
           text:'value',
-          id:this.state.uuid + '.output.value',
+          id:this.state.uuid + '.output.value.',
           isout:true,
         })
       } else if (this.state.output_type == 'list'){
@@ -158,7 +158,7 @@ export default {
         }
       }
       this.ports = self_use;
-      this.$emit('box_port_change', this.ports);
+      this.$emit('box_port_change',this.state.uuid, this.ports);
     }
   },
   props: {
@@ -168,7 +168,7 @@ export default {
     },
   },
   created: function(){
-    console.log('created');
+    // console.log('created');
     this.calculate_ports();
   },
 };

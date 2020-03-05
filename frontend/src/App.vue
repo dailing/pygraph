@@ -33,13 +33,11 @@ export default {
   methods:{
     get_boxes: function () {
       this.$http.get('/api/box_list').then(response => {
-        console.log(response.data);
         this.boxes = response.data
       }, response => {
         console.log(response);
       });
       this.$http.get('/api/wire_list').then(response => {
-        console.log(response.data);
         this.wires = response.data;
       }, response => {
         console.log(response);
@@ -47,7 +45,7 @@ export default {
     }
   },
   mounted: function(){
-    console.log("__init__");
+    // console.log("__init__");
     this.get_boxes()
   }
 }
