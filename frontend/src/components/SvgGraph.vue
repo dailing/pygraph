@@ -24,7 +24,7 @@ export default {
       default: 600
     },
     boxes: {
-      type: Array,
+      type: Object,
       required: true
     }
   },

@@ -22,14 +22,16 @@ Boxes.append(Box(
     x = 200, y = 200,
     output_type='list',
     num_input_args=2,
-    kwargs = ['input1', 'input2']
+    kwargs = ['input1', 'input2'],
+    output_list_number=5,
 ))
 Boxes.append(Box(
     name='b',
     x = 200, y = 400,
     output_type='dict',
     num_input_args=0,
-    kwargs = ['input1', 'input2']
+    kwargs = ['input1', 'input2'],
+    output_keywords = ['out1', 'out2']
 ))
 
 class BoxApi(Resource):
@@ -73,10 +75,7 @@ class BoxListApi(Resource):
         return "OK"
 
     def get(self):
-        l = []
-        for i in Boxes:
-            l.append(i.get_json())
-        return l
+        return {i.uuid: i.get_json() for i in Boxes}
 
 
 

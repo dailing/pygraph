@@ -3,7 +3,7 @@
     <rect 
       :width="state.width" 
       :height="state.height" 
-      :x="state.x" 
+      :x="state.x"
       :y="state.y" 
       class="box"
       :class="{mouseon : mouse_on}"
@@ -14,6 +14,91 @@
       @mousemove="mouse_move"
       @mouseup="mouse_up"
     />
+    <g>
+      <rect v-for="ii in state.num_input_args"
+        :key='ii'
+        :x='state.x'
+        :y='state.y+ii*port_size - port_size/2'
+        :width='port_width'
+        :height='port_height'
+        class="port"
+      />
+      <text v-for="ii in state.num_input_args"
+        :key='"text" + ii'
+        :x='state.x + port_width+5'
+        :y='state.y+ii*port_size'
+        class="port_text"
+      >args_{{ii}}</text>
+      <rect v-for="(name, ii) in state.kwargs"
+        :key='name'
+        :x='state.x'
+        :y='state.y+(ii + state.num_input_args)*port_size + port_size/2'
+        :width='port_width'
+        :height='port_height'
+        class="port"
+      />
+      <text v-for="(name, ii) in state.kwargs"
+        :key='"text" + name'
+        :x='state.x + port_width+5'
+        :y='state.y+(ii+state.num_input_args+1)*port_size'
+        class="port_text"
+      >{{name}}</text>
+    </g>
+    <g v-if="state.output_type=='value'" text-anchor="end">
+      <rect
+        :x='state.x+state.width - port_width'
+        :y='state.y+state.height / 2 - port_height/2'
+        :width='port_width'
+        :height='port_height'
+        class="port"
+      />
+      <text
+        :x='state.x+state.width - port_width - 5'
+        :y='state.y+state.height / 2 + port_height/2'
+        class="port_text"
+      >output</text>
+    </g>
+    <g v-if="state.output_type=='list'" text-anchor="end">
+      <rect v-for="ii in state.output_list_number"
+        :key='ii'
+        :x='state.x+state.width - port_width'
+        :y='state.y+ii*port_size - port_size/2'
+        :width='port_width'
+        :height='port_height'
+        class="port"
+      />
+      <text v-for="ii in state.output_list_number"
+        :key='"text" + ii'
+        :x='state.x+state.width - port_width - 5'
+        :y='state.y+ii*port_size'
+        class="port_text"
+      >args_{{ii}}</text>
+    </g>
+
+    <g v-if="state.output_type=='dict'" text-anchor="end">
+      <rect v-for="(name, ii) in state.output_keywords"
+        :key='ii'
+        :x='state.x+state.width - port_width'
+        :y='state.y+ii*port_size + port_size/2'
+        :width='port_width'
+        :height='port_height'
+        class="port"
+      />
+      <text v-for="(name, ii) in state.output_keywords"
+        :key='"text" + ii'
+        :x='state.x+state.width - port_width - 5'
+        :y='state.y+ii*port_size + port_size'
+        class="port_text"
+      >{{name}}</text>
+    </g>
+
+    <g>
+      <text
+        :x='state.x+state.width/2'
+        :y='state.y+state.height/2'
+        text-anchor='middle'
+      >output</text>
+    </g>
   </g>
 </template>
 
@@ -27,6 +112,9 @@ export default {
       starty: 0,
       status_mousedown: false,
       status_drag : false,
+      port_size:15,
+      port_width:10,
+      port_height:10,
     };
   },
   methods: {
@@ -68,7 +156,10 @@ export default {
       type: Object,
       required: true
     },
-  }
+  },
+  created: function(){
+    console.log('created');
+  },
 };
 </script>
 
@@ -78,5 +169,14 @@ rect.box {
 }
 rect.box.mouseon {
   fill: darkblue;
+}
+.port{
+  fill:darkslategrey;
+}
+.port_text{
+  font-size: 10pt;
+}
+text {
+  pointer-events: none;
 }
 </style>
