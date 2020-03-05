@@ -14,9 +14,10 @@ class Wire(JsonObject):
     output_from_node_output_key = StringField()
     output_from_node_output_index = IntField(default=0)
     input_to_node_uuid = StringField()
-    input_to_node_input_type = StringOptionField(value_list=['kwarg', 'arg'])
+    input_to_node_input_type = StringOptionField(value_list=['kwarg', 'args'])
     input_to_node_input_key = StringField()
     input_to_node_input_index = IntField(default=0)
+    uuid=UUIDField()
 
 
 class Box(JsonObject):

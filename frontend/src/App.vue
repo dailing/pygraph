@@ -4,18 +4,19 @@
     <!-- <HelloWorld msg="Welcome to Your Vue.js App"/> -->
     asdfasd sdf
     <SvgGraph
-     :boxes='boxes'> 
+     :boxes='boxes'
+     :wires='wires'
+    /> 
 
-    </SvgGraph>
   </div>
 </template>
 
 <script>
 // import HelloWorld from './components/HelloWorld.vue'
 // import Box from './components/Box'
-import SvgGraph from './components/SvgGraph'
 import Vue from 'vue' 
 import VueResource from 'vue-resource';
+import SvgGraph from './components/SvgGraph'
 Vue.use(VueResource); 
 
 export default {
@@ -23,6 +24,7 @@ export default {
   data: function(){
     return {
       boxes:{},
+      wires:{}
     }
   },
   components: {
@@ -30,12 +32,18 @@ export default {
   },
   methods:{
     get_boxes: function () {
-        this.$http.get('/api/box_list').then(response => {
-            console.log(response.data);
-            this.boxes = response.data
-        }, response => {
-            console.log(response);
-        })
+      this.$http.get('/api/box_list').then(response => {
+        console.log(response.data);
+        this.boxes = response.data
+      }, response => {
+        console.log(response);
+      });
+      this.$http.get('/api/wire_list').then(response => {
+        console.log(response.data);
+        this.wires = response.data;
+      }, response => {
+        console.log(response);
+      })
     }
   },
   mounted: function(){

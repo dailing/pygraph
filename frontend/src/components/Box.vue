@@ -1,5 +1,6 @@
 <template>
   <g class="Box">
+    <!-- draw main box -->
     <rect 
       :width="state.width" 
       :height="state.height" 
@@ -15,81 +16,24 @@
       @mouseup="mouse_up"
     />
     <g>
-      <rect v-for="ii in state.num_input_args"
-        :key='ii'
-        :x='state.x'
-        :y='state.y+ii*port_size - port_size/2'
+      <!-- draw ports -->
+      <rect v-for="ii in ports"
+        :key='ii.id'
+        :x='ii.x - ii.isout * port_width'
+        :y='ii.y'
         :width='port_width'
         :height='port_height'
         class="port"
       />
-      <text v-for="ii in state.num_input_args"
-        :key='"text" + ii'
-        :x='state.x + port_width+5'
-        :y='state.y+ii*port_size'
+      <!-- draw port texts -->
+      <text v-for="ii in ports"
+        :key='ii.id + "text"'
+        :x='ii.x + (1-ii.isout*2) * port_width * 1.5'
+        :y='ii.y + port_height'
         class="port_text"
-      >args_{{ii}}</text>
-      <rect v-for="(name, ii) in state.kwargs"
-        :key='name'
-        :x='state.x'
-        :y='state.y+(ii + state.num_input_args)*port_size + port_size/2'
-        :width='port_width'
-        :height='port_height'
-        class="port"
-      />
-      <text v-for="(name, ii) in state.kwargs"
-        :key='"text" + name'
-        :x='state.x + port_width+5'
-        :y='state.y+(ii+state.num_input_args+1)*port_size'
-        class="port_text"
-      >{{name}}</text>
-    </g>
-    <g v-if="state.output_type=='value'" text-anchor="end">
-      <rect
-        :x='state.x+state.width - port_width'
-        :y='state.y+state.height / 2 - port_height/2'
-        :width='port_width'
-        :height='port_height'
-        class="port"
-      />
-      <text
-        :x='state.x+state.width - port_width - 5'
-        :y='state.y+state.height / 2 + port_height/2'
-        class="port_text"
-      >output</text>
-    </g>
-    <g v-if="state.output_type=='list'" text-anchor="end">
-      <rect v-for="ii in state.output_list_number"
-        :key='ii'
-        :x='state.x+state.width - port_width'
-        :y='state.y+ii*port_size - port_size/2'
-        :width='port_width'
-        :height='port_height'
-        class="port"
-      />
-      <text v-for="ii in state.output_list_number"
-        :key='"text" + ii'
-        :x='state.x+state.width - port_width - 5'
-        :y='state.y+ii*port_size'
-        class="port_text"
-      >args_{{ii}}</text>
-    </g>
-
-    <g v-if="state.output_type=='dict'" text-anchor="end">
-      <rect v-for="(name, ii) in state.output_keywords"
-        :key='ii'
-        :x='state.x+state.width - port_width'
-        :y='state.y+ii*port_size + port_size/2'
-        :width='port_width'
-        :height='port_height'
-        class="port"
-      />
-      <text v-for="(name, ii) in state.output_keywords"
-        :key='"text" + ii'
-        :x='state.x+state.width - port_width - 5'
-        :y='state.y+ii*port_size + port_size'
-        class="port_text"
-      >{{name}}</text>
+        :class="{out: ii.isout}"
+        :text-anchor="ii.isout?'end':'start'"
+      >{{ii.text}}</text>
     </g>
 
     <g>
@@ -97,7 +41,7 @@
         :x='state.x+state.width/2'
         :y='state.y+state.height/2'
         text-anchor='middle'
-      >output</text>
+      >{{state.name}}</text>
     </g>
   </g>
 </template>
@@ -115,6 +59,7 @@ export default {
       port_size:15,
       port_width:10,
       port_height:10,
+      ports:[],
     };
   },
   methods: {
@@ -135,6 +80,7 @@ export default {
           this.state.y = this.oy + dy;
           this.status_drag = true
         }
+        this.calculate_ports();
       }
     },
     mouse_up: function(event){
@@ -148,7 +94,71 @@ export default {
       }
       this.status_drag = false;
       this.status_mousedown = false;
+      this.calculate_ports();
       // TODO: emit some message
+    },
+    calculate_ports: function(){
+      // make input ports
+      var self_use=[];
+      for(let i=0; i < this.state.num_input_args; i+=1){
+        self_use.push({
+          x:this.state.x,
+          y:this.state.y+(i+0.5)*this.port_size,
+          width:this.port_width,
+          height:this.port_height,
+          text:'args_' + i,
+          id:this.state.uuid + '.input.args.'+i,
+          isout:false,
+        });
+      }
+      for(let i=0; i < this.state.kwargs.length; i+=1){
+        self_use.push({
+          x:this.state.x,
+          y:this.state.y+(i+0.5+this.state.num_input_args)*this.port_size,
+          width:this.port_width,
+          height:this.port_height,
+          text:this.state.kwargs[i],
+          id:this.state.uuid + '.input.kwargs.'+this.state.kwargs[i],
+          isout:false,
+        })
+      }
+      if(this.state.output_type == 'value'){
+        self_use.push({
+          x:this.state.x+this.state.width,
+          y:this.state.y+(0+0.5)*this.port_size,
+          width:this.port_width,
+          height:this.port_height,
+          text:'value',
+          id:this.state.uuid + '.output.value',
+          isout:true,
+        })
+      } else if (this.state.output_type == 'list'){
+        for(let i=0; i < this.state.output_list_number; i+=1){
+          self_use.push({
+            x:this.state.x + this.state.width,
+            y:this.state.y+(i+0.5)*this.port_size,
+            width:this.port_width,
+            height:this.port_height,
+            text:'out_'+i,
+            id:this.state.uuid + '.output.list.'+i,
+            isout:true,
+          })
+        }
+      } else if (this.state.output_type == 'dict'){
+        for(let i=0; i < this.state.output_keywords.length; i+=1){
+          self_use.push({
+            x:this.state.x + this.state.width,
+            y:this.state.y+(i+0.5)*this.port_size,
+            width:this.port_width,
+            height:this.port_height,
+            text:this.state.output_keywords[i],
+            id:this.state.uuid + '.output.dict.'+this.state.output_keywords[i],
+            isout:true,
+          }) 
+        }
+      }
+      this.ports = self_use;
+      this.$emit('box_port_change', this.ports);
     }
   },
   props: {
@@ -159,6 +169,7 @@ export default {
   },
   created: function(){
     console.log('created');
+    this.calculate_ports();
   },
 };
 </script>
@@ -170,13 +181,15 @@ rect.box {
 rect.box.mouseon {
   fill: darkblue;
 }
-.port{
+rect.port{
   fill:darkslategrey;
-}
-.port_text{
-  font-size: 10pt;
 }
 text {
   pointer-events: none;
 }
+text.port_text{
+  font-size: 10pt;
+}
+
+
 </style>

@@ -1,4 +1,4 @@
-from graphbook.core.gui import Box
+from graphbook.core.gui import Box, Wire
 from  flask import Flask, redirect, request
 from graphbook.util import get_logger
 from flask_restful import abort, Api, Resource, reqparse
@@ -10,6 +10,7 @@ api = Api(app, prefix='/api')
 
 
 Boxes = []
+Wires = []
 Boxes.append(Box(
     name='a',
     x=10, y=10,
@@ -26,14 +27,20 @@ Boxes.append(Box(
     output_list_number=5,
 ))
 Boxes.append(Box(
-    name='b',
+    name='c',
     x = 200, y = 400,
     output_type='dict',
     num_input_args=0,
     kwargs = ['input1', 'input2'],
     output_keywords = ['out1', 'out2']
 ))
-
+Wires.append(Wire(
+    output_from_node_uuid=Boxes[0].uuid,
+    output_from_node_output_type=Boxes[0].output_type,
+    input_to_node_uuid=Boxes[1].uuid,
+    input_to_node_input_type='args',
+    input_to_node_input_index=0
+))
 class BoxApi(Resource):
     def __init__(self):
         super(BoxApi, self).__init__()
@@ -59,14 +66,6 @@ class BoxApi(Resource):
 
 
 class BoxListApi(Resource):
-    def __init__(self):
-        self.parser = reqparse.RequestParser()
-        self.parser.add_argument('x', type=float)
-        self.parser.add_argument('y', type=float)
-        self.parser.add_argument('width', type=float)
-        self.parser.add_argument('height', type=float)
-        self.parser.add_argument('name', type=str)
-
     def post(self):
         args = self.parser.parse_args()
         box  = Box()
@@ -78,9 +77,14 @@ class BoxListApi(Resource):
         return {i.uuid: i.get_json() for i in Boxes}
 
 
+class WireListApi(Resource):
+    def get(self):
+        return {i.uuid: i.get_json() for i in Wires}
+
 
 api.add_resource(BoxApi, '/box/<string:todo_id>')
 api.add_resource(BoxListApi, '/box_list')
+api.add_resource(WireListApi, '/wire_list')
 
 @app.route('/')
 def _redirect():

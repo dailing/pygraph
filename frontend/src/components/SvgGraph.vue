@@ -6,11 +6,17 @@
       :key="b.uuid"
       @select="box_selection"
     />
+    <Wire
+      v-for="w in wires"
+      :key='w.uuid'
+      :wire="w"
+    />
   </svg>
 </template>
 
 <script>
 import Box from "./Box.vue";
+import Wire from './Wire.vue'
 
 export default {
   name: "SvgGraph",
@@ -26,10 +32,14 @@ export default {
     boxes: {
       type: Object,
       required: true
+    },
+    wires: {
+      type: Object,
+      required: true
     }
   },
   components: {
-    Box
+    Box, Wire
   },
   methods: {
     box_selection: function(boxid) {
