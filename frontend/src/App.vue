@@ -2,11 +2,10 @@
   <div id="app">
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
     <!-- <HelloWorld msg="Welcome to Your Vue.js App"/> -->
-    asdfasd sdf
     <SvgGraph
      :boxes='boxes'
      :wires='wires'
-    /> 
+    />
 
   </div>
 </template>
@@ -17,6 +16,10 @@
 import Vue from 'vue' 
 import VueResource from 'vue-resource';
 import SvgGraph from './components/SvgGraph'
+import Buefly from 'buefy';
+import 'buefy/dist/buefy.css'
+
+Vue.use(Buefly)
 Vue.use(VueResource); 
 
 export default {

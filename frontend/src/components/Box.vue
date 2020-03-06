@@ -7,8 +7,8 @@
       :x="state.x"
       :y="state.y" 
       class="box"
-      :class="{mouseon : mouse_on}"
-      @click="$emit('select', state.uuid)"
+      :class="{mouseon : mouse_on || status_mousedown}"
+      @click="$emit('box_mouse_down', state.uuid)"
       @mouseover="mouse_on=true"
       @mouseleave="mouse_on=false"
       @mousedown="mouse_down"
@@ -43,6 +43,14 @@
         text-anchor='middle'
       >{{state.name}}</text>
     </g>
+    <rect v-if="status_mousedown"
+      width='100%'
+      height ='100%'
+      opacity='0%'
+      @mousedown="mouse_down"
+      @mousemove="mouse_move"
+      @mouseup="mouse_up"
+    />
   </g>
 </template>
 
@@ -70,6 +78,7 @@ export default {
       this.ox = this.state.x;
       this.oy = this.state.y;
       this.status_mousedown = true;
+      this.$emit('select', this.state.uuid);
     },
     mouse_move: function(event){
       if (this.status_mousedown){
@@ -87,7 +96,7 @@ export default {
       this.mouse_move(event);
       if(!this.status_drag && this.status_mousedown){
         // console.log('click');
-        this.$emit('select_box', this.state.uuid);
+        this.$emit('box_select', this.state.uuid);
       } else if(this.status_drag && this.status_mousedown){
         // console.log('drag');
         this.$emit('move_box', this.state.uuid);
@@ -177,6 +186,7 @@ export default {
 <style scoped>
 rect.box {
   fill: cornflowerblue;
+  opacity: 60%;
 }
 rect.box.mouseon {
   fill: darkblue;
