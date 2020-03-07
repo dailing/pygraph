@@ -7,8 +7,8 @@
       :x="state.x"
       :y="state.y" 
       class="box"
-      :class="{mouseon : mouse_on || status_mousedown}"
-      @click="$emit('box_mouse_down', state.uuid)"
+      :class="{mouseon : mouse_on || status_mousedown, 
+              selected : selected}"
       @mouseover="mouse_on=true"
       @mouseleave="mouse_on=false"
       @mousedown="mouse_down"
@@ -24,6 +24,8 @@
         :width='port_width'
         :height='port_height'
         class="port"
+        :class="{selected: ii.id == selected_port}"
+        @click="$emit('port_click', state.uuid, ii)"
       />
       <!-- draw port texts -->
       <text v-for="ii in ports"
@@ -67,7 +69,7 @@ export default {
       port_size:15,
       port_width:10,
       port_height:10,
-      ports:[],
+      // ports:[],
     };
   },
   methods: {
@@ -78,7 +80,9 @@ export default {
       this.ox = this.state.x;
       this.oy = this.state.y;
       this.status_mousedown = true;
-      this.$emit('select', this.state.uuid);
+      this.$emit('box_mouse_down', this.state.uuid)
+      event.stopPropagation();
+      return false;
     },
     mouse_move: function(event){
       if (this.status_mousedown){
@@ -89,8 +93,9 @@ export default {
           this.state.y = this.oy + dy;
           this.status_drag = true
         }
-        this.calculate_ports();
       }
+      event.stopPropagation();
+      return false;
     },
     mouse_up: function(event){
       this.mouse_move(event);
@@ -103,10 +108,28 @@ export default {
       }
       this.status_drag = false;
       this.status_mousedown = false;
-      this.calculate_ports();
-      // TODO: emit some message
+      event.stopPropagation();
+      return false;
     },
-    calculate_ports: function(){
+  },
+  props: {
+    state: {
+      type: Object,
+      required: true
+    },
+    selected: {
+      type:Boolean,
+      required: false,
+      default: false,
+    },
+    selected_port: {
+      type: String,
+      required:false,
+      default:null,
+    }
+  },
+  computed:{
+    ports: function(){
       // make input ports
       var self_use=[];
       for(let i=0; i < this.state.num_input_args; i+=1){
@@ -166,19 +189,18 @@ export default {
           }) 
         }
       }
-      this.ports = self_use;
-      this.$emit('box_port_change',this.state.uuid, this.ports);
+      // this.ports = self_use;
+      var convert_dict = {}
+      for(var xx of self_use){
+        convert_dict[xx.id] = xx;
+      }
+      this.$emit('box_port_change',this.state.uuid, convert_dict);
+      return convert_dict;
     }
-  },
-  props: {
-    state: {
-      type: Object,
-      required: true
-    },
   },
   created: function(){
     // console.log('created');
-    this.calculate_ports();
+    // this.calculate_ports();
   },
 };
 </script>
@@ -188,11 +210,19 @@ rect.box {
   fill: cornflowerblue;
   opacity: 60%;
 }
+rect.box.selected {
+  stroke:tomato;
+  stroke-width: 3;
+}
 rect.box.mouseon {
   fill: darkblue;
 }
 rect.port{
   fill:darkslategrey;
+}
+rect.port.selected {
+  stroke: tomato;
+  stroke-width: 3;
 }
 text {
   pointer-events: none;

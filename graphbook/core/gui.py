@@ -25,7 +25,7 @@ class Box(JsonObject):
     y = FloatField(default=10)
     width = FloatField(default=200)
     height = FloatField(default=100)
-    name = StringField(default='')
+    name = StringField(default='') #name of instance or function/package name
     uuid = UUIDField()
     box_type = StringOptionField(value_list=['function', 'instance'])
     num_input_args = IntField()
