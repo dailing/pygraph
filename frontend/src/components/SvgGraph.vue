@@ -144,7 +144,7 @@ export default {
         var output_port = input_port == port? this.selected_port: port;
         input_port = input_port.id.split('.');
         output_port = output_port.id.split('.');
-        console.log(output_port);
+        // console.log(output_port);
         var wire = {
           output_from_node_uuid:output_port[0],
           output_from_node_output_type:output_port[2],
@@ -159,7 +159,7 @@ export default {
         this.wires[wire.uuid] = wire;
         this.selected_port = null;
         this.selected_port_box = null;
-        console.log(wire)
+        // console.log(wire)
       }
     },
     cancel_select(){

@@ -1,6 +1,10 @@
 import json
 from abc import ABC, abstractmethod
 import uuid
+from graphbook.util.logs import get_logger
+
+
+logger = get_logger('jsonobject')
 
 
 class JsonObject():
@@ -56,6 +60,8 @@ class Field(ABC):
         instance.__storage__[self.name] = value
     
     def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
         return self._to(instance.__storage__[self.name])
 
     def get_json(self, instance):
