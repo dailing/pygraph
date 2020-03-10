@@ -2,12 +2,14 @@ from graphbook.core.gui import Box, Wire
 from  flask import Flask, redirect, request
 from graphbook.util import get_logger
 from flask_restful import abort, Api, Resource, reqparse
+from flask_socketio import SocketIO, emit
 
 
 logger = get_logger('server')
 app = Flask(__name__, static_folder='../../frontend/dist', static_url_path='/')
 api = Api(app, prefix='/api')
-
+socketio = SocketIO(app, logger=logger,)
+ 
 
 Boxes = []
 Wires = []
@@ -52,13 +54,6 @@ Wires.append(Wire(
 class BoxApi(Resource):
     def __init__(self):
         super(BoxApi, self).__init__()
-        # self.parser = reqparse.RequestParser()
-        # self.parser.add_argument('x', type=float)
-        # self.parser.add_argument('y', type=float)
-        # self.parser.add_argument('width', type=float)
-        # self.parser.add_argument('height', type=float)
-        # self.parser.add_argument('name', type=str)
-        # self.parser.add_argument('id', type=str)
 
     def get(self, box_id):
         return Boxes[box_id].get_json()
@@ -75,9 +70,9 @@ class BoxApi(Resource):
 
 class BoxListApi(Resource):
     def post(self):
-        args = self.parser.parse_args()
+        # args = self.parser.parse_args()
         box  = Box()
-        box.from_json(args)
+        box.from_json(request.json())
         Boxes[box.name] = box
         return "OK"
 
@@ -94,6 +89,29 @@ api.add_resource(BoxApi, '/box/<string:todo_id>')
 api.add_resource(BoxListApi, '/box_list')
 api.add_resource(WireListApi, '/wire_list')
 
+ 
+@socketio.on('test_ping')
+def handle_test_event(json):
+    logger.info('asdf')
+    emit('test_pong', 'fuck')
+
+@socketio.on('ping')
+def pongResponse():
+    emit('pong')
+
+@socketio.on('message')
+def handle_message(message):
+    print('received message: ' + message)
+
+
 @app.route('/')
 def _redirect():
     return redirect('/index.html')
+
+# @app.route('/socket')
+# def socket_test():
+#     logger.info(request)
+#     return 'OK'
+
+if __name__ == "__main__":
+    socketio.run(app, port=25598, host='0.0.0.0', debug=True)

@@ -1,26 +1,22 @@
 <template>
   <div id="app">
-    <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <!-- <HelloWorld msg="Welcome to Your Vue.js App"/> -->
     <SvgGraph
      :boxes='boxes'
      :wires='wires'
     />
-
+    <button @click="click">test</button>
   </div>
 </template>
 
 <script>
-// import HelloWorld from './components/HelloWorld.vue'
-// import Box from './components/Box'
 import Vue from 'vue' 
 import VueResource from 'vue-resource';
 import SvgGraph from './components/SvgGraph'
 import Buefly from 'buefy';
 import 'buefy/dist/buefy.css'
-
 Vue.use(Buefly)
 Vue.use(VueResource); 
+
 
 export default {
   name: 'App',
@@ -32,6 +28,15 @@ export default {
   },
   components: {
     SvgGraph
+  },
+  sockets: {
+    connect: function () {
+            console.log('socket connected')
+    },
+    test_pong: function(data) {
+      console.log('Got Pong');
+      console.log(data);
+    }
   },
   methods:{
     get_boxes: function () {
@@ -45,7 +50,10 @@ export default {
       }, response => {
         console.log(response);
       })
-    }
+    },
+    click(){
+      this.$socket.emit('test_ping', {})
+    },
   },
   mounted: function(){
     // console.log("__init__");
