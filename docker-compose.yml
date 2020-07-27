@@ -1,0 +1,44 @@
+version: "3.4"
+
+#networks:
+#  mongos:
+#    external: true
+
+volumes:
+  home_dir:
+    driver: local
+
+services:
+
+  algo_server:
+    build: docker/runner_docker
+    working_dir: /app
+    ports: 
+      - 25597:8888
+    volumes: 
+      - ./graphbook:/pypath/graphbook
+      - ./run_code:/app
+      - ./.home_store:/home/d
+    environment:
+      PYTHONPATH: /pypath
+    command: jupyter-lab --ip 0.0.0.0 --port 8888
+
+  vue_ui:
+    build: docker/node_docker
+    working_dir: /app
+    ports:
+      - 25599:8000
+    volumes: 
+      - ./frontend:/app
+    command: vue ui -H 0.0.0.0 -p 8000
+
+  web_server:
+    build: docker/flask_docker
+    working_dir: /app
+    ports: 
+      - 25598:5555
+    volumes: 
+      - ./graphbook:/app/graphbook
+    environment:
+      PYTHONPATH: /app
+    command: python /app/graphbook/serer/server.py
