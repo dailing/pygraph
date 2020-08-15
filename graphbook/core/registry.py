@@ -1,9 +1,11 @@
 import inspect
 import warnings
 from functools import partial
-# from .graph import Node
+from ..util import get_logger
 
-# from .misc import is_str
+
+logger = get_logger('registry')
+
 
 def is_str(s):
     return isinstance(s, str)
@@ -173,4 +175,9 @@ def build_from_cfg(cfg, registry, default_args=None):
     if default_args is not None:
         for name, value in default_args.items():
             args.setdefault(name, value)
-    return obj_cls(*_args, **args)
+    # logger.info(obj_cls)
+    # logger.info( f'{_args}, {args}')
+    obj = obj_cls(*_args, **args)
+    # logger.info(obj)
+    assert obj is not None, f'{_args}, {args}'
+    return obj

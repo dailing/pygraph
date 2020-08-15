@@ -7,9 +7,9 @@ import logging
 from .registry import Registry, build_from_cfg
 from torch.nn import Module
 import types
+from ..util import get_logger
 
-# logger = get_logger('graph')
-logger = logging.getLogger('graph')
+logger = get_logger('graph')
 REGISTRY = Registry('root')
 
 
@@ -24,7 +24,6 @@ class _InPort():
         self.from_node_key = from_node_key
 
 class Node(Module):
-    func=None
 
     def __init__(self, func, default_args=None):
         super().__init__()
@@ -36,9 +35,13 @@ class Node(Module):
         self.current_id = None
         self.result = None
         # self.sig = signature(func)
+        assert func is not None
+        assert self.func is not None
 
 
-    def _eval(self, name=None, _id=None):
+    def _eval(self, _id=None):
+        # logger.info(f'eval {self.func}')
+        # logger.info(self.argmap)
         argmap = {}
         # print(self.argmap)
         if _id == self.current_id:
@@ -47,13 +50,13 @@ class Node(Module):
         if self.default_args is not None:
             for k,v in self.default_args.items():
                 argmap[k] = v
-        for k,v in self.argmap.items():
-            tmp_result = v.from_node()
-            if v.from_node_key == '' or v.from_node_key is None:
+        for k, v in self.argmap.items():
+            tmp_result = v.from_node._eval(_id)
+            if v.from_node_key == '' or v.from_node_key is None or v.from_node_key=='*':
                 pass
-            elif hasattr(v, '__getitem__'):
+            elif hasattr(tmp_result, '__getitem__'):
                 tmp_result = tmp_result[v.from_node_key]
-            elif hasattr(v, tmp_result):
+            elif hasattr(tmp_result, v.from_node_key):
                 tmp_result = getattr(tmp_result, v.from_node_key)
             argmap[k] = tmp_result
         # parpare arguments
@@ -67,14 +70,15 @@ class Node(Module):
                 raise AttributeError(f"FUCK no {i} in the fucking argmap")
             args.append(argmap[i])
         kwargs = {}
-
+        # logger.info(argmap)
         for k, v in argmap.items():
             if not isinstance(k, int):
                 if k == '*':
                     if not hasattr(v, '__getitem__'):
                         v = [v]
-                    args.extend(v)
+                    args = v
                 elif k == '' or k is None:
+                    # logger.info("here")
                     args = [v]
                 elif k == '**':
                     kwargs.update(v)
@@ -83,12 +87,21 @@ class Node(Module):
         try:
             self.result = self.func(*args, **kwargs)
         except Exception as e:
-            print(f'FUCKING ERROR, args are: ## {args}, ###{kwargs}')
+            logger.error(self.func)
+            logger.error(f'FUCKING ERROR, args are: ## {args}, ###{kwargs}', exc_info=True)
             raise e
         return self.result
 
-    def __call__(self):
-        return self._eval(_id=random.random())
+    def __call__(self, name=None):
+        result =  self._eval(_id=random.random())
+        if name is None:
+            return result
+        rr = {}
+        if isinstance(name, str):
+            return result[name]
+        for n in name:
+            rr[n] = result[n]
+        return rr
 
 
 @REGISTRY.register_module()
@@ -106,7 +119,13 @@ def connect(n1, k1, n2, k2):
 
 def build_graph(cfg):
     nodes = {}
+    for k in list(cfg.keys()):
+        if not isinstance(cfg[k], dict):
+            cfg.pop(k)
+
     for k, v in cfg.items():
+        if not isinstance(v, dict):
+            continue
         if 'type' not in v:
             logger.warn(f'config {k} not build, no type key')
             continue
@@ -127,6 +146,7 @@ def build_graph(cfg):
         if 'type' not in v:
             continue
         if v['type'] == '_wire_':
+            # logger.info(f'connecting {v}')
             if 'from_node_port' not in v:
                 v['from_node_port'] = None
             if 'to_node_port' not in v:
@@ -148,7 +168,7 @@ class Graph(Module):
 
     def forward(self, names):
         if isinstance(names, str):
-            names = [names]
+            return getattr(self, names)()
         result = {}
         for name in names:
             result[name] = getattr(self, name)()
