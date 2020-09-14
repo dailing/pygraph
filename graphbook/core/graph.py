@@ -22,47 +22,53 @@ class NotInitedException(Exception):
 class Node(Module):
     def __init__(self):
         super().__init__()
-        self._parent = None
+        self._master = None
         self._locals = {}
         self._inst = None
 
     def _eval(self, expression):
         if not isinstance(expression, str) or not (expression[0] == '@'):
             return expression
+        logger.info(f'eval {expression}')
         name, tp, arg = expression[1:].split(':')
         if name not in self._locals:
-            if self._parent is not None:
-                return self._parent._eval(expression)
+            logger.info('searching parent node {name}')
+            if self._master is not None:
+                return self._master._eval(expression)
             else:
                 raise KeyError(name)
         else:
             instance = self._locals[name]
-            if not isinstance(instance, None):
+            if not isinstance(instance, Node):
                 return instance
             if tp == 'inst':
+                instance = instance._inst
                 for e in arg.split('.'):
-                    instance = instance.__get__(e)
+                    instance = getattr(instance, e)
                 return instance
             elif tp == 'call':
                 result = instance._result()
-                if arg != '':
+                if arg != '' and arg != '*':
                     result = result[arg]
                 return result
         raise Exception('should not be here')
-    
+
+
     @abc.abstractclassmethod
     def _result(self):
         raise NotImplementedError('FUCK')
 
-    def __getattr__(self, arg):
-        return self._inst.__get__(arg)
 
-
-def CallNode(Node):
+@REGISTRY.register_module()
+class CallNode(Node):
     def __init__(self, func=None, args=None, kwargs=None):
         super().__init__()
         self._inst = None
         self._func = func
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
         self._args = args
         self._kwargs = kwargs
 
@@ -74,32 +80,49 @@ def CallNode(Node):
         return self._inst(*args, **kwargs)
 
 
-def Package(Node):
+class CodeNode(Node):
+    def __init__(self, code):
+        super().__init__()
+        self._code = code
+
+
+
+@REGISTRY.register_module()
+class Package(Node):
     def __init__(self, pkg=None):
         super().__init__()
         self._pkg = pkg
         self._inst = importlib.import_module(pkg)
 
 
-def Graph(Node):
+@REGISTRY.register_module()
+class Graph(Node):
     def __init__(self, nodes=None, kwargs=None, output=None):
         super().__init__()
         self._inst = None
+        if kwargs is None:
+            kwargs = {}
+        if nodes is None:
+            nodes = {}
         self._kwargs = kwargs
         self._output = output
         for k in kwargs:
             assert k not in nodes
+        for k, v in nodes.items():
+            if isinstance(v, dict):
+                v = build_from_cfg(v, REGISTRY)
+            setattr(v, '_master', self)
+            self._locals[k] = v
 
     def _result(self):
         kwargs = {k:self._eval(v) for k,v in self._kwargs.items()}
-        self.local.update(kwargs)
+        self._locals.update(kwargs)
         if isinstance(self._output, str):
             return self._eval(self._output)
         elif isinstance(self._output, list) or isinstance(self._output, tuple):
             return [self._eval(v) for v in self._output]
         elif isinstance(self._output, dict):
-            return {k, self._eval(v) for k, v in }
-        
+            return {k: self._eval(v) for k, v in self._output.items()}
 
 
 # class _InPort():
@@ -112,9 +135,9 @@ def Graph(Node):
 #         self.from_node = from_node
 #         self.from_node_key = from_node_key
 
-"""
-    expression format  @name_in_dict  :  __get__ list  :  result_index  :  __get__ list
-"""
+# """
+#     expression format  @name_in_dict  :  __get__ list  :  result_index  :  __get__ list
+# """
 # class Session(Module):
 #     def __init__(self):
 #         super().__init__()
@@ -226,11 +249,3 @@ def Graph(Node):
 #     def __getattr__(self, attr):
 #         return self.instance.__get__(attr)
 
-
-if __name__ == "__main__":
-    session = Session()
-    session.from_dict(
-        dict(
-            # a=dict(cls=)
-        )
-    )
