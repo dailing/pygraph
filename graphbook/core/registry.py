@@ -147,6 +147,7 @@ def build_from_cfg(cfg, registry, default_args=None):
     if not isinstance(cfg, dict):
         raise TypeError(f'cfg must be a dict, but got {type(cfg)}')
     if 'type' not in cfg:
+        return cfg
         raise KeyError(
             f'the cfg dict must contain the key "type", but got {cfg}')
     if not isinstance(registry, Registry):

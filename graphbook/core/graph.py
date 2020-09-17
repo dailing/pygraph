@@ -12,6 +12,7 @@ from queue import Queue
 import importlib
 import abc
 
+
 logger = get_logger('graph')
 REGISTRY = Registry('root')
 
@@ -19,15 +20,16 @@ REGISTRY = Registry('root')
 class NotInitedException(Exception):
     pass
 
+
 class Node(Module):
     def __init__(self):
         super().__init__()
         self._master = None
         self._locals = {}
-        self._inst = None
+        # self._inst = None
 
     def _eval(self, expression):
-        if not isinstance(expression, str) or not (expression[0] == '@'):
+        if not isinstance(expression, str) or not expression.startswith('@'):
             return expression
         logger.info(f'eval {expression}')
         name, tp, arg = expression[1:].split(':')
@@ -35,6 +37,8 @@ class Node(Module):
             logger.info('searching parent node {name}')
             if self._master is not None:
                 return self._master._eval(expression)
+            elif hasattr(__builtins__, name):
+                return getattr(__builtins__, name)
             else:
                 raise KeyError(name)
         else:
@@ -44,6 +48,8 @@ class Node(Module):
             if tp == 'inst':
                 instance = instance._inst
                 for e in arg.split('.'):
+                    if e == '':
+                        continue
                     instance = getattr(instance, e)
                 return instance
             elif tp == 'call':
@@ -53,6 +59,26 @@ class Node(Module):
                 return result
         raise Exception('should not be here')
 
+    def __getattr__(self, name):
+        if '_parameters' in self.__dict__:
+            _parameters = self.__dict__['_parameters']
+            if name in _parameters:
+                return _parameters[name]
+        if '_buffers' in self.__dict__:
+            _buffers = self.__dict__['_buffers']
+            if name in _buffers:
+                return _buffers[name]
+        if '_modules' in self.__dict__:
+            modules = self.__dict__['_modules']
+            if name in modules:
+                return modules[name]
+        if '_locals' in self.__dict__:
+            if name in self._locals:
+                return self._locals[name]
+        if self._inst is not None:
+            return getattr(self._inst, name)
+        raise AttributeError("'{}' object has no attribute '{}'".format(
+            type(self).__name__, name))
 
     @abc.abstractclassmethod
     def _result(self):
@@ -63,7 +89,7 @@ class Node(Module):
 class CallNode(Node):
     def __init__(self, func=None, args=None, kwargs=None):
         super().__init__()
-        self._inst = None
+        self.__inst = None
         self._func = func
         if args is None:
             args = []
@@ -72,19 +98,42 @@ class CallNode(Node):
         self._args = args
         self._kwargs = kwargs
 
+    @property
+    def _inst(self):
+        if self.__inst is None:
+            self.__inst = self._eval(self._func)
+        return self.__inst
+
     def _result(self):
-        if self._inst is None:
-            self._inst = self._eval(self._func)
+        # if self._inst is None:
+        #     self._inst = self._eval(self._func)
         args = [self._eval(v) for v in self._args]
-        kwargs = {k:self._eval(v) for k,v in self._kwargs.items()}
+        kwargs = {k:self._eval(v) for k, v in self._kwargs.items()}
         return self._inst(*args, **kwargs)
 
 
+@REGISTRY.register_module()
 class CodeNode(Node):
     def __init__(self, code):
         super().__init__()
-        self._code = code
+        self._code = code.split('\n')
+        self._eval_line = None
+        self._global = dict()
+        if len(self._code) == 1 or not self._code[-1].startswith(' '):
+            self._eval_line = self._code[-1]
+            self._code = '\n'.join(self._code[1:])
 
+    def _result(self):
+        # TODO calculate local map and global map here
+        # TODO calculate args
+        global_vars= dict()
+        local_vars = dict()
+        if self._code != '':
+            exec(self._code, global_vars, local_vars)
+        if self._eval_line is not None:
+            result = eval(self._eval, global_vars, local_vars)
+            return result
+        return None
 
 
 @REGISTRY.register_module()
@@ -99,7 +148,6 @@ class Package(Node):
 class Graph(Node):
     def __init__(self, nodes=None, kwargs=None, output=None):
         super().__init__()
-        self._inst = None
         if kwargs is None:
             kwargs = {}
         if nodes is None:
@@ -111,8 +159,9 @@ class Graph(Node):
         for k, v in nodes.items():
             if isinstance(v, dict):
                 v = build_from_cfg(v, REGISTRY)
-            setattr(v, '_master', self)
+            v.__dict__['_master'] =  self
             self._locals[k] = v
+            setattr(self, k, v)
 
     def _result(self):
         kwargs = {k:self._eval(v) for k,v in self._kwargs.items()}
@@ -125,127 +174,5 @@ class Graph(Node):
             return {k: self._eval(v) for k, v in self._output.items()}
 
 
-# class _InPort():
-#     name=None
-#     from_node=None
-#     from_node_key=None
-
-#     def __init__(self, name=None, from_node=None, from_node_key=None):
-#         self.name = name
-#         self.from_node = from_node
-#         self.from_node_key = from_node_key
-
-# """
-#     expression format  @name_in_dict  :  __get__ list  :  result_index  :  __get__ list
-# """
-# class Session(Module):
-#     def __init__(self):
-#         super().__init__()
-#         self._locals = dict()
-#         self._result = dict()
-
-#     def _eval(self, expression):
-#         if not isinstance(expression, str):
-#             return expression
-#         if not expression.startswith('@'):
-#             return expression
-#         local_name, g_list, result_name, r_list = expression.split(':')
-#         if local_name in self._locals:
-#             inst = self._locals[local_name]
-#         else:
-#             inst = globals()[local_name]
-#         inst = Session._get_list(inst, g_list)
-#         if result_name == '':
-#             return inst
-#         if local_name in self._result:
-#             result = self._result[local_name]
-#         else:
-#             node = self._locals[local_name]
-#             if node.instance is None:
-#                 raise NotInitedException
-#             assert isinstance(node, Node)
-#             args_, kwargs_ = node.args
-#             args = []
-#             kwargs = {}
-#             for k in args_:
-#                 args.append(self._eval(k))
-#             for k, v in kwargs_.items():
-#                 kwargs[k] = self._eval(v)
-#             result = node.instance(*args, **kwargs)
-#             self._result[local_name] = result
-#         if result_name == '' or result_name == '*':
-#             pass
-#         else:
-#             result = result[result_name]
-#         result = Session._get_list(result, r_list)
-#         return result
-
-#     def _init_instance(self, expression)
-    
-#     @staticmethod
-#     def _get_list(inst, expression):
-#         if expression == '*' or expression == '':
-#             return inst
-#         for e in expression.split('.'):
-#             inst = inst.__get__(e)
-#         return inst
-
-#     def _init_nodes_(self):
-#         req = list(self._locals.keys())
-#         self._locals.update(dict(
-#             CodeBlock=Node(instance=CodeBlock)
-#         ))
-#         while len(req) > 0:
-#             p_req = []
-#             for k in req:
-#                 node = self._locals[k]
-#                 if node.instance is not None:
-#                     pass
-#                 if isinstance(node.cls, str):
-#                     # handle import
-#                     if node.cls.startswith('!'):
-#                         node.instance = importlib.import_module(node.cls)
-#                     else:
-#                         try:
-#                             node.instance = self._eval(node.cls)
-#                         except NotInitedException:
-#                             p_req.append(k)
-#             if len(p_req) == len(req):
-#                 print("Circular dependency!")
-#                 raise Exception("Fuck circular dependency")
-
-#     def from_dict(self, records):
-#         for k, v in records.items():
-#             self._locals[k] = Node(**v)
-
-
-# class CodeBlock():
-#     def __init__(self, code):
-#         if isinstance(code, str):
-#             code = code.split('\n')
-#         self._code = code
-#         self.globals = None
-
-#     def __call__(self, **kwargs):
-#         local = kwargs
-#         for c in self._code[:-1]:
-#             eval(c, self.globals, local)
-#         try:
-#             result = eval(self._code[-1], self.globals, local)
-#             return result
-#         except SyntaxError:
-#             exec(self._code[-1], self.globals, local)
-#         return None
-
-
-# class Node(Module):
-
-#     def __init__(self, cls, init_args=None, args=None, instance=None):
-#         self.cls = cls
-#         self.init_args = init_args
-#         self.args = args
-#         self.instance = instance
-
-#     def __getattr__(self, attr):
-#         return self.instance.__get__(attr)
-
+def build_graph(g):
+    return build_from_cfg(g, REGISTRY)
